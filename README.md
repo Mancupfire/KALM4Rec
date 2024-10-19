@@ -1,39 +1,71 @@
-
 # KALM4Rec
+## Keyword-driven Retrieval-Augmented Large Language Models for Cold-start User Recommendations 
+<p align="center">
+<img src="./imgs/pipeline.png" alt="ALM4Res" />
+</p>
 
-**KALM4Rec** aims to tackle  the cold-start recommendation problem (where users lack historical data) by requiring only a few input keywords from users in a practical scenario of cold-start user restaurant recommendations. [[paper]](https://arxiv.org/pdf/2405.19612) 
+## Dependencies
+```
+spacy, DGL, 
+```
+##  Usage
 
-![Picture](https://github.com/user-attachments/assets/2a0abebb-e43a-4816-8c26-be64a7071623)
+### Stage 1: Keyword extraction and Processing
+```
+# extract keyword
+python .\extractor.py --edgeType IUF --city singapore --kwExtractor kw_NLTK
+
+# Download train: train is filtered file at ./data/preprocessed/by_city-users_min_3_reviews/keywords_spacy-min_3/train) then rename as: {city}-keyword_train.json
+# Download test: train is filtered file at ./data/preprocessed/by_city-users_min_3_reviews/keywords_spacy/test) then rename as: {city}-keyword_test.json
+# move those train/test keywords file to ./data/keywords directory
+
+# Download irf and tf_irf;  rename as {city}-keyword-IRF.json {city}-keyword-TFIRF.json ; move to  ./data/score/{city}-keyword-TFIRF.json
+# Download iuf and tf_iuf;  rename as {city}-keyword-IUF.json {city}-keyword-TFIUF.json ; move to  ./data/score/{city}-keyword-TFIUF.json
+```
+
+### Stage 2: Generate candidates: jaccard, MPG, BCR, MF, MVAE.
+
+```
+# jaccard
+python cmain.py --RetModel jaccard
+
+# MF
+python .\retrieval.py --RetModel MF  --export2LLMs --city edinburgh --num_epochs 100 --hidden_dim 256 --lr 0.007
+
+# MVAE
+python .\retrieval.py --RetModel MVAE  --export2LLMs --city edinburgh --num_epochs 500 --hidden_dim 128 --lr 0.003
+
+# CBR
+python retrieval.py --RetModel CBR --edgeType IUF 
+
+# MPG
+python retrieval.py --RetModel MGP --export2LLMs --city singapore --edgeType IUF
 
 
-## 🛍️ Keyword-driven Retrieval-Augmented Large Language Models for Cold-start User Recommendations
+```
+#### Args
 
- Our framework is built upon two essential components centered around keywords: **candidates retrieval** focusing on retrieving relevant restaurants and **LLM-ranker** which leverages LLM to re-rank the retrieved candidates.
- 
- ## 🚀 Quick Start
- **Installation**
- 
-  We recommend installing Gradio using pip, which is included by default in Python. Run this in your terminal or command prompt:
- 
-   ``` 
-   pip install gradio numpy sentence-transformers tf-keras
-   ```
-Now, run your code. If you've written the Python code in a file named, for example [app.py] then you would run [python app.py] from the terminal.
+> `checkKeyword`: check number of keywords then exit
+>
+> `RetModel`: models.
+>
+> `genType`: build a KNN model to obtain most similar keyword in case of missing for testing user.
+>
+>
 
-**Core Structure**
+#### Results for retrieval models:
+| Models      | P@20        | R@20          |
+| :----:      |    :----:   |    :----:     |
+| jaccard     | 0.03        |   0.06        |
+| MF          | 0.05        |   0.13        |
+| MVAE        | 0.08        |   0.28        |
+| CBR         | 0.15        |   0.42        |
+| MPG         | 0.15        |   0.42        |
 
-**Keyword Processing**: The `extract_keywords` function simulates keyword extraction from user reviews.
+### Stage 3: Recommend by LLMs
 
-**Retrieval Model**: The `retrieve_candidates` function uses embeddings to find similar restaurants based on keywords.
-
-**KALM4REC**:
- - The `generate_prompt` function creates a prompt that includes user keywords and restaurant information.
-
- - The `llm_rerank` function simulates the re-ranking process using the generated prompt.
-
-
-Some Note!!!
-- Search: Allows users to search for products.
-- Product Details: Displays details for a specific product based on its ID.
-- Recommendations: Provides recommendations based on a product ID.
-- Cold Start Recommendations: Offers recommendations for new users based on keywords.
+## Dataset:
+```
+Yelp, Tripadvisor
+Link: https://www.cs.cmu.edu/~jiweil/html/hotel-review.html
+```
